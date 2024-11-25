@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ping Pong Game</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background: #121212;
+            color: #ffffff;
+            font-family: Verdana, sans-serif;
+        }
+
+        .play-area {
+            width: 600px;
+            height: 600px;
+            border: 3px solid #ffffff;
+            background: #000000;
+            position: relative;
+        }
+
+        .bar {
+            width: 10px;
+            height: 100px;
+            background: #ffffff;
+            position: absolute;
+        }
+
+        .bar-a {
+            left: 10px;
+        }
+
+        .bar-b {
+            right: 10px;
+        }
+
+        .circle {
+            width: 15px;
+            height: 15px;
+            background: #ffffff;
+            border-radius: 50%;
+            position: absolute;
+        }
+
+        .score-display {
+            position: absolute;
+            top: 20px;
+            text-align: center;
+            width: 100%;
+            font-size: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="play-area">
+        <div class="score-display">
+            <span id="score-a">0</span> : <span id="score-b">0</span>
+        </div>
+        <div class="bar bar-a" id="left-bar"></div>
+        <div class="bar bar-b" id="right-bar"></div>
+        <div class="circle" id="ball"></div>
+    </div>
+
+    <script>
+        const court = document.querySelector('.play-area');
+        const leftBar = document.getElementById('left-bar');
+        const rightBar = document.getElementById('right-bar');
+        const ball = document.getElementById('ball');
+        const scoreA = document.getElementById('score-a');
+        const scoreB = document.getElementById('score-b');
+
+        const courtSize = 600;
+        const paddleShift = 12;
+        const ballSpeed = 6;
+
+        let leftBarY = 250;
+        let rightBarY = 250;
+        let ballX = 300;
+        let ballY = 300;
+        let ballMoveX = ballSpeed;
+        let ballMoveY = ballSpeed;
+        let playerA = 0;
+        let playerB = 0;
+
+        window.addEventListener('keydown', (event) => {
+            if (event.key === 'w' && leftBarY > 0) leftBarY -= paddleShift;
+            else if (event.key === 's' && leftBarY < courtSize - 100) leftBarY += paddleShift;
+
+            if (event.key === 'ArrowUp' && rightBarY > 0) rightBarY -= paddleShift;
+            else if (event.key === 'ArrowDown' && rightBarY < courtSize - 100) rightBarY += paddleShift;
+
+            leftBar.style.top = `${leftBarY}px`;
+            rightBar.style.top = `${rightBarY}px`;
+        });
+
+        function resetBall() {
+            ballX = 300;
+            ballY = 300;
+            ballMoveX *= -1;
+        }
+
+        function moveGame() {
+            ballX += ballMoveX;
+            ballY += ballMoveY;
+
+            if (ballY <= 0 || ballY >= courtSize - 15) ballMoveY *= -1;
+
+            if (
+                ballX <= 20 &&
+                ballY + 15 >= leftBarY &&
+                ballY <= leftBarY + 100
+            ) ballMoveX *= -1;
+
+            if (
+                ballX >= 570 &&
+                ballY + 15 >= rightBarY &&
+                ballY <= rightBarY + 100
+            ) ballMoveX *= -1;
+
+            if (ballX <= 0) {
+                playerB++;
+                scoreB.textContent = playerB;
+                resetBall();
+            } else if (ballX >= 600) {
+                playerA++;
+                scoreA.textContent = playerA;
+                resetBall();
+            }
+
+            ball.style.left = `${ballX}px`;
+            ball.style.top = `${ballY}px`;
+
+            requestAnimationFrame(moveGame);
+        }
+
+        moveGame();
+    </script>
+</body>
+
+</html>
