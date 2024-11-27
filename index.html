@@ -17,7 +17,7 @@
             justify-content: center;
             align-items: center;
             height: 100vh;
-            background: #121212;
+            background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
             color: #ffffff;
             font-family: Verdana, sans-serif;
         }
@@ -25,24 +25,28 @@
         .play-area {
             width: 600px;
             height: 600px;
-            border: 3px solid #ffffff;
+            border: 4px solid #ffffff;
             background: #000000;
             position: relative;
+            overflow: hidden;
+            border-radius: 10px;
+            box-shadow: 0px 10px 20px rgba(0, 0, 0, 0.7);
         }
 
         .bar {
-            width: 10px;
+            width: 12px;
             height: 100px;
             background: #ffffff;
             position: absolute;
+            transition: top 0.1s;
         }
 
         .bar-a {
-            left: 10px;
+            left: 20px;
         }
 
         .bar-b {
-            right: 10px;
+            right: 20px;
         }
 
         .circle {
@@ -56,9 +60,41 @@
         .score-display {
             position: absolute;
             top: 20px;
-            text-align: center;
             width: 100%;
+            text-align: center;
             font-size: 20px;
+            z-index: 10;
+        }
+
+        .winner-message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 28px;
+            text-align: center;
+            color: #ffcc00;
+            display: none;
+            z-index: 20;
+        }
+
+        .start-btn {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #ffcc00;
+            color: #000;
+            font-size: 16px;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            z-index: 20;
+        }
+
+        .start-btn:hover {
+            background: #e6b800;
         }
     </style>
 </head>
@@ -68,10 +104,15 @@
         <div class="score-display">
             <span id="score-a">0</span> : <span id="score-b">0</span>
         </div>
+        <div id="winner-message" class="winner-message"></div>
+        <button id="start-btn" class="start-btn">Start Game</button>
         <div class="bar bar-a" id="left-bar"></div>
         <div class="bar bar-b" id="right-bar"></div>
         <div class="circle" id="ball"></div>
     </div>
+
+    <audio id="hit-sound" src="https://www.soundjay.com/button/beep-07.wav"></audio>
+    <audio id="score-sound" src="https://www.soundjay.com/button/button-10.wav"></audio>
 
     <script>
         const court = document.querySelector('.play-area');
@@ -80,72 +121,135 @@
         const ball = document.getElementById('ball');
         const scoreA = document.getElementById('score-a');
         const scoreB = document.getElementById('score-b');
+        const startBtn = document.getElementById('start-btn');
+        const winnerMessage = document.getElementById('winner-message');
+        const hitSound = document.getElementById('hit-sound');
+        const scoreSound = document.getElementById('score-sound');
 
         const courtSize = 600;
-        const paddleShift = 12;
-        const ballSpeed = 6;
+        const paddleSpeed = 15;
+        const initialBallSpeed = 4;
+        const maxScore = 10;
 
         let leftBarY = 250;
         let rightBarY = 250;
         let ballX = 300;
         let ballY = 300;
-        let ballMoveX = ballSpeed;
-        let ballMoveY = ballSpeed;
+        let ballMoveX = 0;
+        let ballMoveY = 0;
+        let speedMultiplier = 1.05;
         let playerA = 0;
         let playerB = 0;
+        let isGameRunning = false;
 
         window.addEventListener('keydown', (event) => {
-            if (event.key === 'w' && leftBarY > 0) leftBarY -= paddleShift;
-            else if (event.key === 's' && leftBarY < courtSize - 100) leftBarY += paddleShift;
+            if (!isGameRunning) return;
 
-            if (event.key === 'ArrowUp' && rightBarY > 0) rightBarY -= paddleShift;
-            else if (event.key === 'ArrowDown' && rightBarY < courtSize - 100) rightBarY += paddleShift;
+            if (event.key === 'w' && leftBarY > 0) leftBarY -= paddleSpeed;
+            else if (event.key === 's' && leftBarY < courtSize - 100) leftBarY += paddleSpeed;
+
+            if (event.key === 'ArrowUp' && rightBarY > 0) rightBarY -= paddleSpeed;
+            else if (event.key === 'ArrowDown' && rightBarY < courtSize - 100) rightBarY += paddleSpeed;
 
             leftBar.style.top = `${leftBarY}px`;
             rightBar.style.top = `${rightBarY}px`;
         });
 
+        function resetGame() {
+            playerA = 0;
+            playerB = 0;
+            ballX = 300;
+            ballY = 300;
+            ballMoveX = 0;
+            ballMoveY = 0;
+            scoreA.textContent = playerA;
+            scoreB.textContent = playerB;
+            isGameRunning = false;
+            winnerMessage.style.display = 'none';
+            startBtn.style.display = 'block';
+        }
+
+        function startGame() {
+            resetGame();
+            ballMoveX = initialBallSpeed * (Math.random() < 0.5 ? 1 : -1);
+            ballMoveY = initialBallSpeed * (Math.random() < 0.5 ? 1 : -1);
+            isGameRunning = true;
+            startBtn.style.display = 'none';
+        }
+
+        function declareWinner(winner) {
+            winnerMessage.textContent = `${winner} Wins!`;
+            winnerMessage.style.display = 'block';
+            isGameRunning = false;
+        }
+
         function resetBall() {
             ballX = 300;
             ballY = 300;
             ballMoveX *= -1;
+            ballMoveX = initialBallSpeed * (Math.random() < 0.5 ? 1 : -1);
+            ballMoveY = initialBallSpeed * (Math.random() < 0.5 ? 1 : -1);
         }
 
-        function moveGame() {
+        function playSound(sound) {
+            sound.currentTime = 0;
+            sound.play();
+        }
+
+        function moveElements() {
+            if (!isGameRunning) return;
+
             ballX += ballMoveX;
             ballY += ballMoveY;
 
             if (ballY <= 0 || ballY >= courtSize - 15) ballMoveY *= -1;
 
             if (
-                ballX <= 20 &&
+                ballX <= 32 &&
                 ballY + 15 >= leftBarY &&
                 ballY <= leftBarY + 100
-            ) ballMoveX *= -1;
+            ) {
+                ballMoveX *= -1;
+                ballMoveX *= speedMultiplier;
+                ballMoveY *= speedMultiplier;
+                playSound(hitSound);
+            }
 
             if (
-                ballX >= 570 &&
+                ballX >= 553 &&
                 ballY + 15 >= rightBarY &&
                 ballY <= rightBarY + 100
-            ) ballMoveX *= -1;
+            ) {
+                ballMoveX *= -1;
+                ballMoveX *= speedMultiplier;
+                ballMoveY *= speedMultiplier;
+                playSound(hitSound);
+            }
 
             if (ballX <= 0) {
                 playerB++;
                 scoreB.textContent = playerB;
+                playSound(scoreSound);
                 resetBall();
+                if (playerB >= maxScore) declareWinner('Player B');
             } else if (ballX >= 600) {
                 playerA++;
                 scoreA.textContent = playerA;
+                playSound(scoreSound);
                 resetBall();
+                if (playerA >= maxScore) declareWinner('Player A');
             }
 
             ball.style.left = `${ballX}px`;
             ball.style.top = `${ballY}px`;
 
-            requestAnimationFrame(moveGame);
+            requestAnimationFrame(moveElements);
         }
 
-        moveGame();
+        startBtn.addEventListener('click', startGame);
+
+        resetGame();
+        requestAnimationFrame(moveElements);
     </script>
 </body>
 
