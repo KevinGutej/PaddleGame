@@ -96,6 +96,33 @@
         .start-btn:hover {
             background: #e6b800;
         }
+
+        .timer-display {
+            position: absolute;
+            top: 50px;
+            width: 100%;
+            text-align: center;
+            font-size: 16px;
+            z-index: 10;
+        }
+
+        .mute-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: #ffcc00;
+            color: #000;
+            font-size: 14px;
+            padding: 8px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            z-index: 20;
+        }
+
+        .mute-btn:hover {
+            background: #e6b800;
+        }
     </style>
 </head>
 
@@ -105,14 +132,15 @@
             <span id="score-a">0</span> : <span id="score-b">0</span>
         </div>
         <div id="winner-message" class="winner-message"></div>
+        <div class="timer-display" id="timer-display">00:00</div>
         <button id="start-btn" class="start-btn">Start Game</button>
+        <button id="mute-btn" class="mute-btn">Mute Music</button>
         <div class="bar bar-a" id="left-bar"></div>
         <div class="bar bar-b" id="right-bar"></div>
         <div class="circle" id="ball"></div>
     </div>
 
-    <audio id="hit-sound" src="https://www.soundjay.com/button/beep-07.wav"></audio>
-    <audio id="score-sound" src="https://www.soundjay.com/button/button-10.wav"></audio>
+    <audio id="background-music" src="https://www.bensound.com/bensound-music/bensound-energy.mp3" loop></audio>
 
     <script>
         const court = document.querySelector('.play-area');
@@ -123,133 +151,116 @@
         const scoreB = document.getElementById('score-b');
         const startBtn = document.getElementById('start-btn');
         const winnerMessage = document.getElementById('winner-message');
-        const hitSound = document.getElementById('hit-sound');
-        const scoreSound = document.getElementById('score-sound');
-
-        const courtSize = 600;
-        const paddleSpeed = 15;
-        const initialBallSpeed = 4;
-        const maxScore = 10;
+        const timerDisplay = document.getElementById('timer-display');
+        const muteBtn = document.getElementById('mute-btn');
+        const backgroundMusic = document.getElementById('background-music');
 
         let leftBarY = 250;
         let rightBarY = 250;
         let ballX = 300;
         let ballY = 300;
-        let ballMoveX = 0;
-        let ballMoveY = 0;
-        let speedMultiplier = 1.05;
+        let ballMoveX = 3;
+        let ballMoveY = 3;
         let playerA = 0;
         let playerB = 0;
         let isGameRunning = false;
+        let gameTime = 0;
 
         window.addEventListener('keydown', (event) => {
             if (!isGameRunning) return;
 
-            if (event.key === 'w' && leftBarY > 0) leftBarY -= paddleSpeed;
-            else if (event.key === 's' && leftBarY < courtSize - 100) leftBarY += paddleSpeed;
+            if (event.key === 'w' && leftBarY > 0) leftBarY -= 15;
+            else if (event.key === 's' && leftBarY < 500) leftBarY += 15;
 
-            if (event.key === 'ArrowUp' && rightBarY > 0) rightBarY -= paddleSpeed;
-            else if (event.key === 'ArrowDown' && rightBarY < courtSize - 100) rightBarY += paddleSpeed;
+            if (event.key === 'ArrowUp' && rightBarY > 0) rightBarY -= 15;
+            else if (event.key === 'ArrowDown' && rightBarY < 500) rightBarY += 15;
 
             leftBar.style.top = `${leftBarY}px`;
             rightBar.style.top = `${rightBarY}px`;
         });
 
-        function resetGame() {
-            playerA = 0;
-            playerB = 0;
-            ballX = 300;
-            ballY = 300;
-            ballMoveX = 0;
-            ballMoveY = 0;
-            scoreA.textContent = playerA;
-            scoreB.textContent = playerB;
-            isGameRunning = false;
-            winnerMessage.style.display = 'none';
-            startBtn.style.display = 'block';
+        function updateTimer() {
+            gameTime++;
+            const minutes = String(Math.floor(gameTime / 60)).padStart(2, '0');
+            const seconds = String(gameTime % 60).padStart(2, '0');
+            timerDisplay.textContent = `${minutes}:${seconds}`;
         }
 
-        function startGame() {
-            resetGame();
-            ballMoveX = initialBallSpeed * (Math.random() < 0.5 ? 1 : -1);
-            ballMoveY = initialBallSpeed * (Math.random() < 0.5 ? 1 : -1);
-            isGameRunning = true;
-            startBtn.style.display = 'none';
-        }
-
-        function declareWinner(winner) {
-            winnerMessage.textContent = `${winner} Wins!`;
-            winnerMessage.style.display = 'block';
-            isGameRunning = false;
-        }
-
-        function resetBall() {
-            ballX = 300;
-            ballY = 300;
-            ballMoveX *= -1;
-            ballMoveX = initialBallSpeed * (Math.random() < 0.5 ? 1 : -1);
-            ballMoveY = initialBallSpeed * (Math.random() < 0.5 ? 1 : -1);
-        }
-
-        function playSound(sound) {
-            sound.currentTime = 0;
-            sound.play();
-        }
-
-        function moveElements() {
+        function moveBall() {
             if (!isGameRunning) return;
 
             ballX += ballMoveX;
             ballY += ballMoveY;
 
-            if (ballY <= 0 || ballY >= courtSize - 15) ballMoveY *= -1;
+            if (ballY <= 0 || ballY >= 585) ballMoveY *= -1;
 
             if (
                 ballX <= 32 &&
-                ballY + 15 >= leftBarY &&
+                ballY >= leftBarY &&
                 ballY <= leftBarY + 100
             ) {
                 ballMoveX *= -1;
-                ballMoveX *= speedMultiplier;
-                ballMoveY *= speedMultiplier;
-                playSound(hitSound);
             }
 
             if (
                 ballX >= 553 &&
-                ballY + 15 >= rightBarY &&
+                ballY >= rightBarY &&
                 ballY <= rightBarY + 100
             ) {
                 ballMoveX *= -1;
-                ballMoveX *= speedMultiplier;
-                ballMoveY *= speedMultiplier;
-                playSound(hitSound);
             }
 
             if (ballX <= 0) {
                 playerB++;
                 scoreB.textContent = playerB;
-                playSound(scoreSound);
                 resetBall();
-                if (playerB >= maxScore) declareWinner('Player B');
             } else if (ballX >= 600) {
                 playerA++;
                 scoreA.textContent = playerA;
-                playSound(scoreSound);
                 resetBall();
-                if (playerA >= maxScore) declareWinner('Player A');
             }
 
             ball.style.left = `${ballX}px`;
             ball.style.top = `${ballY}px`;
 
-            requestAnimationFrame(moveElements);
+            requestAnimationFrame(moveBall);
         }
+
+        function resetBall() {
+            ballX = 300;
+            ballY = 300;
+        }
+
+        function startGame() {
+            if (isGameRunning) return;
+            isGameRunning = true;
+            startBtn.style.display = 'none';
+            backgroundMusic.play();
+            setInterval(updateTimer, 1000);
+            moveBall();
+        }
+
+        function resetGame() {
+            isGameRunning = false;
+            ballX = 300;
+            ballY = 300;
+            playerA = 0;
+            playerB = 0;
+            scoreA.textContent = playerA;
+            scoreB.textContent = playerB;
+            timerDisplay.textContent = '00:00';
+            gameTime = 0;
+            startBtn.style.display = 'block';
+        }
+
+        muteBtn.addEventListener('click', () => {
+            backgroundMusic.muted = !backgroundMusic.muted;
+            muteBtn.textContent = backgroundMusic.muted ? 'Unmute Music' : 'Mute Music';
+        });
 
         startBtn.addEventListener('click', startGame);
 
         resetGame();
-        requestAnimationFrame(moveElements);
     </script>
 </body>
 
